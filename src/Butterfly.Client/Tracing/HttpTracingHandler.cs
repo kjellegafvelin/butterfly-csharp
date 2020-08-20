@@ -1,9 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using AspectCore.DynamicProxy;
+using AspectCore.DynamicProxy.Parameters;
 using Butterfly.OpenTracing;
+using OpenTracing;
+using OpenTracing.Propagation;
 
 namespace Butterfly.Client.Tracing
 {
@@ -25,7 +30,8 @@ namespace Butterfly.Client.Tracing
 
         protected virtual async Task<HttpResponseMessage> TracingSendAsync(ISpan span, HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            span.Tags.Client().Component("HttpClient")
+
+            ((Span)span).Tags.Client().Component("HttpClient")
                 .HttpMethod(request.Method.Method)
                 .HttpUrl(request.RequestUri.OriginalString)
                 .HttpHost(request.RequestUri.Host)
@@ -34,7 +40,15 @@ namespace Butterfly.Client.Tracing
                 .PeerHostName(request.RequestUri.Host)
                 .PeerPort(request.RequestUri.Port);
 
-            _tracer.Tracer.Inject(span.SpanContext, request.Headers, (c, k, v) => c.Add(k, v));
+            var headers = new Dictionary<string, string>();
+
+            _tracer.Tracer.Inject(span.Context, BuiltinFormats.HttpHeaders,
+                new TextMapInjectAdapter(headers));
+
+            foreach (var header in headers)
+            {
+                request.Headers.Add(header.Key, header.Value);
+            }
 
             span.Log(LogField.CreateNew().ClientSend());
 

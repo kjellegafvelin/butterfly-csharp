@@ -1,6 +1,6 @@
 ﻿using System;
-using Butterfly.OpenTracing;
 using Microsoft.AspNetCore.Http;
+using OpenTracing;
 
 namespace Butterfly.Client.AspNetCore
 {

@@ -28,8 +28,10 @@ namespace Butterfly.Client.AspNetCore
         {
             var httpContext = exceptionContext.HttpContext;
             Event(httpContext, "AspNetCore.Mvc BeforeOnException");
-            var span = httpContext.GetSpan();
-            span?.Exception(exceptionContext.Exception);
+            var span = (Span)httpContext.GetSpan();
+
+            span.Tags.Error(true);
+            span.Log(LogField.CreateNew().EventError().ErrorKind(exceptionContext.Exception).Message(exceptionContext.Exception.Message));
         }
 
         [DiagnosticName("Microsoft.AspNetCore.Mvc.AfterOnException")]

@@ -12,7 +12,7 @@ namespace Butterfly.Client.Tracing
             _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         }
 
-        public void Record(ISpan span)
+        public void Record(Span span)
         {
             _dispatcher.Dispatch(SpanContractUtils.CreateFromSpan(span));
         }

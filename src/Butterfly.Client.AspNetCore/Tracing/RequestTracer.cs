@@ -6,6 +6,8 @@ using Butterfly.Client.Tracing;
 using Butterfly.OpenTracing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using OpenTracing;
+using OpenTracing.Propagation;
 
 namespace Butterfly.Client.AspNetCore
 {
@@ -14,7 +16,7 @@ namespace Butterfly.Client.AspNetCore
         private readonly IServiceTracer _tracer;
         private readonly ButterflyOptions _options;
 
-        public RequestTracer(IServiceTracer tracer,IOptions<ButterflyOptions> options)
+        public RequestTracer(IServiceTracer tracer, IOptions<ButterflyOptions> options)
         {
             _tracer = tracer;
             _options = options.Value;
@@ -28,14 +30,18 @@ namespace Butterfly.Client.AspNetCore
                 return null;
             }
 
-            var spanBuilder = new SpanBuilder($"server {httpContext.Request.Method} {httpContext.Request.Path}");
-            if (_tracer.Tracer.TryExtract(out var spanContext, httpContext.Request.Headers, (c, k) => c[k].GetValue(),
-                c => c.Select(x => new KeyValuePair<string, string>(x.Key, x.Value.GetValue())).GetEnumerator()))
+            var spanBuilder = _tracer.Tracer.BuildSpan($"server {httpContext.Request.Method} {httpContext.Request.Path}");
+
+            var spanContext = _tracer.Tracer.Extract(BuiltinFormats.HttpHeaders,
+                new TextMapExtractAdapter(httpContext.Request.Headers.ToDictionary(k => k.Key, v => v.Value[0])));
+
+            if (spanContext != null)
             {
                 spanBuilder.AsChildOf(spanContext);
             }
-            var span = _tracer.Start(spanBuilder);        
-            httpContext.SetSpan(span);         
+
+            var span = (Span)spanBuilder.Start();
+            httpContext.SetSpan(span);
             span.Log(LogField.CreateNew().ServerReceive());
             span.Log(LogField.CreateNew().Event("AspNetCore BeginRequest"));
             span.Tags
@@ -53,7 +59,7 @@ namespace Butterfly.Client.AspNetCore
 
         public void OnEndRequest(HttpContext httpContext)
         {
-            var span = httpContext.GetSpan();
+            var span = (Span)httpContext.GetSpan();
             if (span == null)
             {
                 return;
@@ -69,13 +75,15 @@ namespace Butterfly.Client.AspNetCore
 
         public void OnException(HttpContext httpContext, Exception exception, string @event)
         {
-            var span = httpContext.GetSpan();
+            var span = (Span)httpContext.GetSpan();
             if (span == null)
             {
                 return;
             }
             span.Log(LogField.CreateNew().Event(@event));
-            span.Exception(exception);
+
+            span.Tags.Error(true);
+            span.Log(LogField.CreateNew().EventError().ErrorKind(exception).Message(exception.Message));
         }
     }
 }

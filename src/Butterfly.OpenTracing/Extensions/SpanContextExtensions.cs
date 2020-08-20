@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using OpenTracing;
+using System;
 
 namespace Butterfly.OpenTracing
 {
@@ -12,8 +11,9 @@ namespace Butterfly.OpenTracing
             {
                 throw new ArgumentNullException(nameof(spanContext));
             }
+            var context = (SpanContext)spanContext;
 
-            return new SpanContextPackage(spanContext.TraceId, spanContext.SpanId, spanContext.Sampled, spanContext.Baggage, null);
+            return new SpanContextPackage(context.TraceId, context.SpanId, context.Sampled, context.Baggage, null);
         }
 
         public static ISpanContext SetBaggage(this ISpanContext spanContext, string key, string value)
@@ -23,7 +23,7 @@ namespace Butterfly.OpenTracing
                 throw new ArgumentNullException(nameof(spanContext));
             }
 
-            spanContext.Baggage[key] = value;
+            spanContext.SetBaggage(key, value);
             return spanContext;
         }
     }

@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Description>A .NET client for Butterfly.</Description>
     <AssemblyTitle>Butterfly.Client</AssemblyTitle>
-    <TargetFrameworks>netstandard1.6;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.6</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Butterfly.Client</AssemblyName>
     <PackageId>Butterfly.Client</PackageId>
@@ -15,12 +15,16 @@
   <ItemGroup>
     <PackageReference Include="AspectCore.Core" Version="0.2.4" />
     <PackageReference Include="Butterfly.DataContract" Version="0.0.7" />
+    <PackageReference Include="GitVersionTask" Version="5.3.7">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net45'" />
+    <ProjectReference Include="..\Butterfly.OpenTracing\Butterfly.OpenTracing.csproj" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Butterfly.OpenTracing\Butterfly.OpenTracing.csproj" />
+    <Reference Include="System.Net.Http" Condition="'$(TargetFramework)' == 'net45'" />
   </ItemGroup>
 </Project>

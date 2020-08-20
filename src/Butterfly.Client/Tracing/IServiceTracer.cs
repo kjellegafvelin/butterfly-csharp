@@ -1,5 +1,5 @@
 ﻿using AspectCore.DynamicProxy;
-using Butterfly.OpenTracing;
+using OpenTracing;
 
 namespace Butterfly.Client.Tracing
 {

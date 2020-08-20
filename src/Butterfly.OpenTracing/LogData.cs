@@ -7,16 +7,14 @@ namespace Butterfly.OpenTracing
     {
         public DateTime Timestamp { get; }
 
+        public string Message { get; }
+
         public LogField Fields { get; }
 
-        public LogData()
-            : this(DateTime.UtcNow, null)
+        public LogData(DateTime timestamp, string message)
         {
-        }
-
-        public LogData(IDictionary<string, object> fields)
-            : this(DateTime.UtcNow, fields)
-        {
+            Timestamp = timestamp;
+            Message = message;
         }
 
         public LogData(DateTime timestamp, IDictionary<string, object> fields)

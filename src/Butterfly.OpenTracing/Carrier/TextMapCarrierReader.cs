@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenTracing;
+using System;
 using System.Threading.Tasks;
 
 namespace Butterfly.OpenTracing

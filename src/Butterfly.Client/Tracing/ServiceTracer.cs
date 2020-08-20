@@ -1,5 +1,6 @@
 ﻿using System;
 using Butterfly.OpenTracing;
+using OpenTracing;
 
 namespace Butterfly.Client.Tracing
 {
@@ -46,14 +47,15 @@ namespace Butterfly.Client.Tracing
 
         public ISpan Start(ISpanBuilder spanBuilder)
         {
-            var span = _tracer.Start(spanBuilder);
+            var tracer = (Tracer)_tracer;
+            var span = (Span)spanBuilder.Start();
 
             span.Tags.Service(_service)
                 .ServiceIdentity(_identity)
                 .ServiceEnvironment(_environment)
                 .ServiceHost(_hostName);
 
-            return new ServiceSpan(span, _tracer);
+            return new ServiceSpan(span, tracer);
         }
     }
 }

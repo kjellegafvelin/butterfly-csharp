@@ -1,106 +1,22 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Butterfly.OpenTracing;
+using OpenTracing;
 
 namespace Butterfly.Client.Tracing
 {
     public static class ServiceTracerExtensions
     {
-        public static void ChildTrace(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Action<ISpan> operation)
+        public static async Task ChildTraceAsync(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Func<Span, Task> operation)
         {
             if (tracer == null)
             {
                 throw new ArgumentNullException(nameof(tracer));
             }
 
-            Trace(tracer, CreateChildSpanBuilder(tracer, operationName, startTimestamp), operation);
-        }
+            var spanBuilder = CreateChildSpanBuilder(tracer, operationName, startTimestamp);
 
-        public static TResult ChildTrace<TResult>(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Func<ISpan, TResult> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            return Trace(tracer, CreateChildSpanBuilder(tracer, operationName, startTimestamp), operation);
-        }
-
-        public static void Trace(this IServiceTracer tracer, ISpanBuilder spanBuilder, Action<ISpan> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            using (var span = tracer.Start(spanBuilder))
-            {
-                try
-                {
-                    operation?.Invoke(span);
-                }
-                catch (Exception exception)
-                {
-                    span.Exception(exception);
-                    throw;
-                }
-            }
-        }
-
-        public static TResult Trace<TResult>(this IServiceTracer tracer, ISpanBuilder spanBuilder, Func<ISpan, TResult> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            using (var span = tracer.Start(spanBuilder))
-            {
-                try
-                {
-                    if (operation == null)
-                    {
-                        return default(TResult);
-                    }
-
-                    return operation(span);
-                }
-                catch (Exception exception)
-                {
-                    span.Exception(exception);
-                    throw;
-                }
-            }
-        }
-
-        public static Task ChildTraceAsync(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Func<ISpan, Task> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            return TraceAsync(tracer, CreateChildSpanBuilder(tracer, operationName, startTimestamp), operation);
-        }
-
-        public static Task<TResult> ChildTraceAsync<TResult>(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Func<ISpan, Task<TResult>> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            return TraceAsync(tracer, CreateChildSpanBuilder(tracer, operationName, startTimestamp), operation);
-        }
-
-        public static async Task TraceAsync(this IServiceTracer tracer, ISpanBuilder spanBuilder, Func<ISpan, Task> operation)
-        {
-            if (tracer == null)
-            {
-                throw new ArgumentNullException(nameof(tracer));
-            }
-
-            using (var span = tracer.Start(spanBuilder))
+            using (var span = (Span)tracer.Start(spanBuilder))
             {
                 try
                 {
@@ -108,20 +24,24 @@ namespace Butterfly.Client.Tracing
                 }
                 catch (Exception exception)
                 {
-                    span.Exception(exception);
+                    span.Tags.Error(true);
+                    span.Log(LogField.CreateNew().EventError().ErrorKind(exception).Message(exception.Message));
+
                     throw;
                 }
             }
         }
 
-        public static async Task<TResult> TraceAsync<TResult>(this IServiceTracer tracer, ISpanBuilder spanBuilder, Func<ISpan, Task<TResult>> operation)
+        public static async Task<TResult> ChildTraceAsync<TResult>(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp, Func<Span, Task<TResult>> operation)
         {
             if (tracer == null)
             {
                 throw new ArgumentNullException(nameof(tracer));
             }
 
-            using (var span = tracer.Start(spanBuilder))
+            var spanBuilder = CreateChildSpanBuilder(tracer, operationName, startTimestamp);
+
+            using (var span = (Span)tracer.Start(spanBuilder))
             {
                 try
                 {
@@ -129,7 +49,9 @@ namespace Butterfly.Client.Tracing
                 }
                 catch (Exception exception)
                 {
-                    span.Exception(exception);
+                    span.Tags.Error(true);
+                    span.Log(LogField.CreateNew().EventError().ErrorKind(exception).Message(exception.Message));
+
                     throw;
                 }
             }
@@ -142,15 +64,26 @@ namespace Butterfly.Client.Tracing
 
         public static ISpan Start(this IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp = null)
         {
-            var spanBuilder = new SpanBuilder(operationName, startTimestamp);
-            return tracer.Start(spanBuilder);
+            var spanBuilder = tracer.Tracer.BuildSpan(operationName);
+            if (startTimestamp != null)
+            {
+                spanBuilder.WithStartTimestamp(startTimestamp.Value);
+            }
+            return spanBuilder.Start();
         }
 
 
         private static ISpanBuilder CreateChildSpanBuilder(IServiceTracer tracer, string operationName, DateTimeOffset? startTimestamp = null)
         {
-            var spanBuilder = new SpanBuilder(operationName, startTimestamp);
-            var spanContext = tracer.Tracer.GetCurrentSpan()?.SpanContext;
+            var spanBuilder = tracer.Tracer.BuildSpan(operationName);
+            
+            if (startTimestamp != null)
+            {
+                spanBuilder.WithStartTimestamp(startTimestamp.Value);
+            }
+
+            var spanContext = tracer.Tracer.GetCurrentSpan()?.Context;
+
             if (spanContext != null)
             {
                 spanBuilder.AsChildOf(spanContext);

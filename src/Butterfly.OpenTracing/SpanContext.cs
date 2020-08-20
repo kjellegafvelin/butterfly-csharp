@@ -1,4 +1,6 @@
-﻿using System;
+﻿using OpenTracing;
+using System;
+using System.Collections.Generic;
 
 namespace Butterfly.OpenTracing
 {
@@ -21,6 +23,16 @@ namespace Butterfly.OpenTracing
             Sampled = sampled;
             Baggage = baggage ?? throw new ArgumentNullException(nameof(baggage));
             References = references ?? SpanReferenceCollection.Empty;
+        }
+
+        public IEnumerable<KeyValuePair<string, string>> GetBaggageItems()
+        {
+            return this.Baggage;
+        }
+
+        public string GetBaggageItem(string key)
+        {
+            return this.Baggage.TryGetValue(key, out string value) ? value : null;
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OpenTracing;
+using System;
 
 namespace Butterfly.OpenTracing
 {

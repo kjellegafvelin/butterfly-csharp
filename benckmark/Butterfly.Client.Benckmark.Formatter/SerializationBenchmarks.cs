@@ -8,6 +8,7 @@ using Butterfly.Client.Tracing;
 using Butterfly.OpenTracing;
 using MessagePack;
 using Newtonsoft.Json;
+using OpenTracing;
 
 namespace Butterfly.Client.Benckmark.Formatter
 {
@@ -28,7 +29,7 @@ namespace Butterfly.Client.Benckmark.Formatter
             IServiceTracer serviceTracer = new ServiceTracer(tracer, "benckmark", "debug", "Butterfly.Client.Benckmark.Formatter");
             for (var i = 0; i < 250; i++)
             {
-                using (var span = serviceTracer.Start("parent"))
+                using (var span = (ServiceSpan)serviceTracer.Start("parent"))
                 {
                     span.Log(LogField.CreateNew().ServerReceive());
                     span.Tags
@@ -42,7 +43,7 @@ namespace Butterfly.Client.Benckmark.Formatter
                      .PeerPort(8080);
                     span.Log(LogField.CreateNew().ServerSend());
 
-                    using (var child = serviceTracer.StartChild("child"))
+                    using (var child = (ServiceSpan)serviceTracer.StartChild("child"))
                     {
                     }
                 }

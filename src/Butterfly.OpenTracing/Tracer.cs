@@ -1,5 +1,6 @@
-﻿using System;
-using System.Linq;
+﻿using OpenTracing;
+using OpenTracing.Propagation;
+using System;
 using System.Threading.Tasks;
 
 namespace Butterfly.OpenTracing
@@ -7,14 +8,30 @@ namespace Butterfly.OpenTracing
     public class Tracer : ITracer
     {
         private readonly ISpanContextFactory _spanContextFactory;
-        private readonly ISpanRecorder _spanRecorder;
         private readonly ISampler _sampler;
 
         public Tracer(ISpanRecorder spanRecorder, ISampler sampler = null, ISpanContextFactory spanContextFactory = null)
         {
-            _spanRecorder = spanRecorder ?? throw new ArgumentNullException(nameof(spanRecorder));
+            Recorder = spanRecorder ?? throw new ArgumentNullException(nameof(spanRecorder));
             _sampler = sampler ?? new FullSampler();
             _spanContextFactory = spanContextFactory ?? new SpanContextFactory();
+        }
+
+        public ISpanRecorder Recorder { get; }
+
+        public IScopeManager ScopeManager => throw new NotImplementedException();
+
+        public ISpan ActiveSpan => throw new NotImplementedException();
+
+        public ISpanBuilder BuildSpan(string operationName)
+        {
+            if (operationName == null)
+            {
+                throw new ArgumentNullException(nameof(operationName));
+            }
+
+            return new SpanBuilder(this, operationName, _sampler, _spanContextFactory);
+
         }
 
         public ISpanContext Extract(ICarrierReader carrierReader, ICarrier carrier)
@@ -25,6 +42,11 @@ namespace Butterfly.OpenTracing
             }
 
             return carrierReader.Read(carrier);
+        }
+
+        public ISpanContext Extract<TCarrier>(IFormat<TCarrier> format, TCarrier carrier)
+        {
+            throw new NotImplementedException();
         }
 
         public Task<ISpanContext> ExtractAsync(ICarrierReader carrierReader, ICarrier carrier)
@@ -47,6 +69,11 @@ namespace Butterfly.OpenTracing
             carrierWriter.Write(spanContext.Package(), carrier);
         }
 
+        public void Inject<TCarrier>(ISpanContext spanContext, IFormat<TCarrier> format, TCarrier carrier)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task InjectAsync(ISpanContext spanContext, ICarrierWriter carrierWriter, ICarrier carrier)
         {
             if (carrierWriter == null)
@@ -60,28 +87,6 @@ namespace Butterfly.OpenTracing
             }
 
             return carrierWriter.WriteAsync(spanContext.Package(), carrier);
-        }
-
-        public ISpan Start(ISpanBuilder spanBuilder)
-        {
-            if (spanBuilder == null)
-            {
-                throw new ArgumentNullException(nameof(spanBuilder));
-            }
-
-            var traceId = spanBuilder.References?.FirstOrDefault()?.SpanContext?.TraceId;
-
-            var baggage = new Baggage();
-
-            if (spanBuilder.References != null)
-                foreach (var reference in spanBuilder.References)
-                {
-                    baggage.Merge(reference.SpanContext.Baggage);
-                }
-
-            var sampled = spanBuilder.Sampled ?? _sampler?.ShouldSample();
-            var spanContext = _spanContextFactory.Create(new SpanContextPackage(traceId, null, sampled.GetValueOrDefault(true), baggage, spanBuilder.References));
-            return new Span(spanBuilder.OperationName, spanBuilder.StartTimestamp ?? DateTimeOffset.UtcNow, spanContext, _spanRecorder);
         }
     }
 }

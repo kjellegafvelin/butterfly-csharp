@@ -7,9 +7,9 @@ namespace Butterfly.Client.Benckmark.Formatter.Mock
 {
     class CollectionSpanRecorder : ISpanRecorder
     {
-        private ICollection<ISpan> collection = new List<ISpan>();
+        private readonly ICollection<Span> collection = new List<Span>();
 
-        public void Record(ISpan span)
+        public void Record(Span span)
         {
             collection.Add(span);
         }

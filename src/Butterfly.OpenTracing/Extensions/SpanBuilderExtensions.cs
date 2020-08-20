@@ -1,6 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using OpenTracing;
+using System;
 
 namespace Butterfly.OpenTracing
 {
@@ -12,7 +11,7 @@ namespace Butterfly.OpenTracing
             {
                 throw new ArgumentNullException(nameof(spanBuilder));
             }
-            spanBuilder.References.Add(new SpanReference(SpanReferenceOptions.ChildOf, spanContext));
+            spanBuilder.AddReference(References.ChildOf, spanContext);
             return spanBuilder;
         }
 
@@ -22,7 +21,7 @@ namespace Butterfly.OpenTracing
             {
                 throw new ArgumentNullException(nameof(spanBuilder));
             }
-            spanBuilder.References.Add(new SpanReference(SpanReferenceOptions.FollowsFrom, spanContext));
+            spanBuilder.AddReference(References.FollowsFrom, spanContext);
             return spanBuilder;
         }
     }

@@ -1,10 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\build\common.props" />
-  <Import Project="..\..\build\net45.props" />
   <PropertyGroup>
     <Description>Reference implementation of OpenTracing API</Description>
     <AssemblyTitle>Butterfly.OpenTracing</AssemblyTitle>
-    <TargetFrameworks>netstandard1.6;net45</TargetFrameworks>
+    <TargetFrameworks>netstandard1.6</TargetFrameworks>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Butterfly.OpenTracing</AssemblyName>
     <PackageId>Butterfly.OpenTracing</PackageId>
@@ -12,8 +11,11 @@
     <PackageReleaseNotes>
     </PackageReleaseNotes>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|netstandard1.6|AnyCPU'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG;NETSTANDARD1_6</DefineConstants>
     <LangVersion>default</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="OpenTracing" Version="0.12.1" />
+  </ItemGroup>
 </Project>

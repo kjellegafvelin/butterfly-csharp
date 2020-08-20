@@ -1,4 +1,5 @@
 ﻿using Butterfly.OpenTracing;
+using OpenTracing;
 
 namespace Butterfly.Client.Tracing
 {

@@ -1,8 +1,8 @@
 ﻿using System.Net;
 using Butterfly.Client.Tracing;
-using Butterfly.OpenTracing;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Options;
+using OpenTracing;
 
 namespace Butterfly.Client.AspNetCore
 {
