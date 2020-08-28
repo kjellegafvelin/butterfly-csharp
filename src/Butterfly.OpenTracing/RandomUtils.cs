@@ -4,12 +4,13 @@ using System.Threading;
 namespace Butterfly.OpenTracing
 {
     /// <summary>
-    /// Thread-safe random long generator.
-    ///
+    /// <para>Thread-safe random long generator.</para>
+    /// <para>
     /// See "Correct way to use Random in multithread application"
     /// http://stackoverflow.com/questions/19270507/correct-way-to-use-random-in-multithread-application
+    /// </para>
     /// </summary>
-    public static class RandomUtils
+    internal static class RandomUtils
     {
         private static int _seed = Guid.NewGuid().GetHashCode();
 

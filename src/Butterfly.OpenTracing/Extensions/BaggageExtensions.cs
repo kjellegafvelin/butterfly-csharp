@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Butterfly.OpenTracing
 {
-    public static class BaggageExtensions
+    internal static class BaggageExtensions
     {
         public static Baggage Merge(this Baggage baggage, Baggage other)
         {

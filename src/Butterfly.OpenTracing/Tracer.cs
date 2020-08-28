@@ -1,27 +1,37 @@
-﻿using OpenTracing;
+﻿using Butterfly.OpenTracing.Propagation;
+using Butterfly.OpenTracing.Recorder;
+using Butterfly.OpenTracing.Sampler;
+using OpenTracing;
 using OpenTracing.Propagation;
 using System;
-using System.Threading.Tasks;
 
 namespace Butterfly.OpenTracing
 {
     public class Tracer : ITracer
     {
-        private readonly ISpanContextFactory _spanContextFactory;
+        private readonly SpanContextFactory _spanContextFactory;
         private readonly ISampler _sampler;
 
-        public Tracer(ISpanRecorder spanRecorder, ISampler sampler = null, ISpanContextFactory spanContextFactory = null)
+        public string ServiceName { get; }
+
+        internal Tracer(string serviceName, ISpanRecorder spanRecorder, ISampler sampler, SpanContextFactory spanContextFactory, IScopeManager scopeManager)
         {
-            Recorder = spanRecorder ?? throw new ArgumentNullException(nameof(spanRecorder));
+            if (string.IsNullOrEmpty(serviceName))
+            {
+                throw new ArgumentException(nameof(serviceName));
+            }
+            this.ServiceName = serviceName;
+            this.Recorder = spanRecorder ?? throw new ArgumentNullException(nameof(spanRecorder));
+            this.ScopeManager = scopeManager ?? throw new ArgumentNullException(nameof(scopeManager));
             _sampler = sampler ?? new FullSampler();
-            _spanContextFactory = spanContextFactory ?? new SpanContextFactory();
+            _spanContextFactory = spanContextFactory ?? throw new ArgumentNullException(nameof(spanContextFactory));
         }
 
         public ISpanRecorder Recorder { get; }
 
-        public IScopeManager ScopeManager => throw new NotImplementedException();
+        public IScopeManager ScopeManager { get; }
 
-        public ISpan ActiveSpan => throw new NotImplementedException();
+        public ISpan ActiveSpan => ScopeManager.Active?.Span;
 
         public ISpanBuilder BuildSpan(string operationName)
         {
@@ -31,62 +41,16 @@ namespace Butterfly.OpenTracing
             }
 
             return new SpanBuilder(this, operationName, _sampler, _spanContextFactory);
-
-        }
-
-        public ISpanContext Extract(ICarrierReader carrierReader, ICarrier carrier)
-        {
-            if (carrierReader == null)
-            {
-                throw new ArgumentNullException(nameof(carrierReader));
-            }
-
-            return carrierReader.Read(carrier);
         }
 
         public ISpanContext Extract<TCarrier>(IFormat<TCarrier> format, TCarrier carrier)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<ISpanContext> ExtractAsync(ICarrierReader carrierReader, ICarrier carrier)
-        {
-            return carrierReader.ReadAsync(carrier);
-        }
-
-        public void Inject(ISpanContext spanContext, ICarrierWriter carrierWriter, ICarrier carrier)
-        {
-            if (carrierWriter == null)
-            {
-                throw new ArgumentNullException(nameof(carrierWriter));
-            }
-
-            if (spanContext == null)
-            {
-                throw new ArgumentNullException(nameof(spanContext));
-            }
-
-            carrierWriter.Write(spanContext.Package(), carrier);
+            return new TextMapCarrierReader(this._spanContextFactory).Read(carrier as ITextMap);
         }
 
         public void Inject<TCarrier>(ISpanContext spanContext, IFormat<TCarrier> format, TCarrier carrier)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task InjectAsync(ISpanContext spanContext, ICarrierWriter carrierWriter, ICarrier carrier)
-        {
-            if (carrierWriter == null)
-            {
-                throw new ArgumentNullException(nameof(carrierWriter));
-            }
-
-            if (spanContext == null)
-            {
-                throw new ArgumentNullException(nameof(spanContext));
-            }
-
-            return carrierWriter.WriteAsync(spanContext.Package(), carrier);
+            new TextMapCarrierWriter().Write(spanContext.Package(), carrier as ITextMap);
         }
     }
 }

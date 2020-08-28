@@ -1,4 +1,6 @@
-﻿using OpenTracing;
+﻿using Butterfly.Client.Tracing;
+using Butterfly.OpenTracing.Sampler;
+using OpenTracing;
 using OpenTracing.Tag;
 using System;
 using System.Globalization;
@@ -9,19 +11,19 @@ namespace Butterfly.OpenTracing
 {
     public class SpanBuilder : ISpanBuilder
     {
-        private bool ingoreActiveSpan;
+        private bool ignoreActiveSpan;
 
-        public string OperationName { get; }
+        internal string OperationName { get; }
 
-        public DateTimeOffset? StartTimestamp { get; private set; }
+        internal DateTimeOffset? StartTimestamp { get; private set; }
 
-        public Baggage Baggage { get; }
+        internal Baggage Baggage { get; }
 
-        public SpanReferenceCollection References { get; }
+        internal SpanReferenceCollection References { get; }
 
         private readonly TagCollection tags;
         private readonly Tracer tracer;
-        private readonly ISpanContextFactory spanContextFactory;
+        private readonly SpanContextFactory spanContextFactory;
         private readonly ISampler sampler;
 
         public bool? Sampled
@@ -33,12 +35,12 @@ namespace Butterfly.OpenTracing
             }
         }
 
-        internal SpanBuilder(Tracer tracer, string operationName, ISampler sampler, ISpanContextFactory spanContextFactory)
+        internal SpanBuilder(Tracer tracer, string operationName, ISampler sampler, SpanContextFactory spanContextFactory)
             : this(tracer, operationName, null, sampler, spanContextFactory)
         {
         }
 
-        internal SpanBuilder(Tracer tracer, string operationName, DateTimeOffset? startTimestamp, ISampler sampler, ISpanContextFactory spanContextFactory)
+        internal SpanBuilder(Tracer tracer, string operationName, DateTimeOffset? startTimestamp, ISampler sampler, SpanContextFactory spanContextFactory)
         {
             this.tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             this.OperationName = operationName ?? throw new ArgumentNullException(nameof(operationName));
@@ -63,6 +65,11 @@ namespace Butterfly.OpenTracing
 
         public ISpanBuilder AddReference(string referenceType, ISpanContext referencedContext)
         {
+            if (referencedContext == null)
+            {
+                return this;
+            }
+
             SpanReferenceOptions spanReferenceOption;
 
             switch (referenceType)
@@ -83,7 +90,7 @@ namespace Butterfly.OpenTracing
 
         public ISpanBuilder IgnoreActiveSpan()
         {
-            ingoreActiveSpan = true;
+            this.ignoreActiveSpan = true;
             return this;
         }
 
@@ -145,11 +152,18 @@ namespace Butterfly.OpenTracing
 
         public IScope StartActive(bool finishSpanOnDispose)
         {
-            throw new NotImplementedException();
+            return tracer.ScopeManager.Activate(this.Start(), finishSpanOnDispose);
         }
 
         public ISpan Start()
         {
+            var activeSpanContext = this.tracer.ActiveSpan?.Context;
+
+            if (!this.References.Any() && !this.ignoreActiveSpan && activeSpanContext != null)
+            {
+                this.AsChildOf(activeSpanContext);
+            }
+
             var traceId = this.References?.FirstOrDefault()?.SpanContext?.TraceId;
 
             var baggage = new Baggage();
@@ -165,7 +179,9 @@ namespace Butterfly.OpenTracing
 
             var sampled = this.Sampled ?? this.sampler.ShouldSample();
             var spanContext = this.spanContextFactory.Create(new SpanContextPackage(traceId, null, sampled, baggage, this.References));
-            return new Span(this.OperationName, this.StartTimestamp ?? DateTimeOffset.UtcNow, spanContext, this.tracer);
+            return new Span(this.OperationName, this.StartTimestamp ?? DateTimeOffset.UtcNow, spanContext, this.tracer, this.tags)
+                .SetTag(Tags.Service, this.tracer.ServiceName)
+                .SetTag(ServiceTags.ServiceHost, Environment.MachineName);
         }
     }
 }

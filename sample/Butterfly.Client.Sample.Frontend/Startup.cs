@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Threading.Tasks;
-using Butterfly.Client.AspNetCore;
-using Butterfly.Client.Tracing;
+﻿using Butterfly.OpenTracing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using OpenTracing;
+using OpenTracing.Contrib.NetCore.CoreFx;
+using OpenTracing.Util;
 
 namespace Butterfly.Client.Sample.Frontend
 {
@@ -27,21 +23,35 @@ namespace Butterfly.Client.Sample.Frontend
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
-            services.AddButterfly(option =>
+
+            services.AddSingleton<ITracer>(sp =>
             {
-                option.CollectorUrl = "http://localhost:9618";
-                option.Service = "Frontend";
+                var loggerFactory = sp.GetService<ILoggerFactory>();
+                var tracer = new Configuration("Frontend", loggerFactory).BuildTracer();
+
+                GlobalTracer.Register(tracer);
+
+                return tracer;
             });
 
-            services.AddSingleton<HttpClient>(p => new HttpClient(p.GetService<HttpTracingHandler>()));
+            services.AddOpenTracing();
+
+            services.Configure<HttpHandlerDiagnosticOptions>(options =>
+            {
+                options.IgnorePatterns.Add(x => {
+                    return x.RequestUri.Port == 9618;
+                    });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app)
         {
             app.UseDeveloperExceptionPage();
-            
-            app.UseMvc();
+
+            app.UseRouting();
+
+            app.UseEndpoints(builder => builder.MapControllers());
         }
     }
 }

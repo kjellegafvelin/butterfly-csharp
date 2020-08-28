@@ -2,7 +2,7 @@
 
 namespace Butterfly.OpenTracing
 {
-    public class Baggage : Dictionary<string, string>
-    {   
+    internal class Baggage : Dictionary<string, string>
+    {
     }
 }

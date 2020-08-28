@@ -1,6 +1,5 @@
 ﻿using System.Net.Http;
 using System.Threading.Tasks;
-using Butterfly.Client.Tracing;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Butterfly.Client.Sample.Frontend.Controllers
@@ -10,9 +9,10 @@ namespace Butterfly.Client.Sample.Frontend.Controllers
     {
         // GET api/values
         [HttpGet]
-        public async Task<string> Get([FromServices] HttpClient httpClient, [FromServices] IServiceTracer tracer)
+        public async Task<string> Get()
         {
-            return await httpClient.GetStringAsync("http://localhost:5002/api/values");
+            var httpClient = new HttpClient();
+            return await httpClient.GetStringAsync("http://localhost:19448/api/values");
         }
 
         // GET api/values/5

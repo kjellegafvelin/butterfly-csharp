@@ -1,6 +1,6 @@
 ﻿namespace Butterfly.OpenTracing
 {
-    public struct SpanContextPackage
+    internal struct SpanContextPackage
     {
         public string TraceId { get; }
 

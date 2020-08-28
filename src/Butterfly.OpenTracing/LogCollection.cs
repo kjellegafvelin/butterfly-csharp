@@ -2,7 +2,7 @@
 
 namespace Butterfly.OpenTracing
 {
-    public class LogCollection : Collection<LogData>
+    internal class LogCollection : Collection<LogData>
     {
     }
 }

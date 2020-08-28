@@ -2,9 +2,9 @@
 
 namespace Butterfly.Client.Benckmark.Formatter
 {
-    class Program
+    static class Program
     {
-        static void Main(string[] args)
+        private static void Main(string[] args)
         {
             BenchmarkDotNet.Running.BenchmarkRunner.Run<SerializationBenchmarks>();
         }

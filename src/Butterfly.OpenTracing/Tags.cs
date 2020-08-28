@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Butterfly.OpenTracing
+﻿namespace Butterfly.OpenTracing
 {
-    public static class Tags
+    internal static class Tags
     {
         public const string Service = "service.name";
         /// <summary>

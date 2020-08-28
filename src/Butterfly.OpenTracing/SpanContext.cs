@@ -12,11 +12,11 @@ namespace Butterfly.OpenTracing
 
         public bool Sampled { get; }
 
-        public Baggage Baggage { get; }
+        internal Baggage Baggage { get; }
 
-        public SpanReferenceCollection References { get; }
+        internal SpanReferenceCollection References { get; }
 
-        public SpanContext(string traceId, string spanId, bool sampled, Baggage baggage, SpanReferenceCollection references)
+        internal SpanContext(string traceId, string spanId, bool sampled, Baggage baggage, SpanReferenceCollection references)
         {
             TraceId = traceId;
             SpanId = spanId;

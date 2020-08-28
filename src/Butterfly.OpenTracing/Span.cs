@@ -2,7 +2,6 @@
 using OpenTracing.Tag;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 
 namespace Butterfly.OpenTracing
@@ -13,24 +12,25 @@ namespace Butterfly.OpenTracing
         private DateTimeOffset _finishTimestamp;
         private int _state;
 
-        public DateTimeOffset StartTimestamp { get; }
+        internal DateTimeOffset StartTimestamp { get; }
 
-        public DateTimeOffset FinishTimestamp => _finishTimestamp;
+        internal DateTimeOffset FinishTimestamp => _finishTimestamp;
 
-        public TagCollection Tags { get; }
-        
-        public LogCollection Logs { get; }
+        internal TagCollection Tags { get; }
 
-        public string OperationName { get; private set; }
+        internal LogCollection Logs { get; }
+
+        internal string OperationName { get; private set; }
 
         public ISpanContext Context { get; }
 
-        public Span(string operationName, DateTimeOffset startTimestamp, ISpanContext spanContext, Tracer tracer)
+        internal Span(string operationName, DateTimeOffset startTimestamp, ISpanContext spanContext,
+            Tracer tracer, TagCollection tags)
         {
             _state = 0;
             _tracer = tracer ?? throw new ArgumentNullException(nameof(tracer));
             Context = spanContext ?? throw new ArgumentNullException(nameof(spanContext));
-            Tags = new TagCollection();
+            Tags = tags ?? new TagCollection();
             Logs = new LogCollection();
             OperationName = operationName;
             StartTimestamp = startTimestamp;
@@ -124,14 +124,13 @@ namespace Butterfly.OpenTracing
 
         public ISpan SetBaggageItem(string key, string value)
         {
-            this.Context.SetBaggage(key, value);
+            ((SpanContext)this.Context).Baggage.Add(key, value);
             return this;
         }
 
         public string GetBaggageItem(string key)
         {
             return ((SpanContext)this.Context).GetBaggageItem(key);
-
         }
 
         public ISpan SetOperationName(string operationName)

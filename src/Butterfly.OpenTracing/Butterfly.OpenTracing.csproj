@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>Reference implementation of OpenTracing API</Description>
     <AssemblyTitle>Butterfly.OpenTracing</AssemblyTitle>
-    <TargetFrameworks>netstandard1.6</TargetFrameworks>
+    <TargetFramework>netstandard2.0</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>Butterfly.OpenTracing</AssemblyName>
     <PackageId>Butterfly.OpenTracing</PackageId>
@@ -16,6 +16,9 @@
     <LangVersion>default</LangVersion>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Butterfly.DataContract" Version="0.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.7" />
+    <PackageReference Include="Microsoft.Extensions.Options" Version="3.1.7" />
     <PackageReference Include="OpenTracing" Version="0.12.1" />
   </ItemGroup>
 </Project>

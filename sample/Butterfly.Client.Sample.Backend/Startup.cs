@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Butterfly.Client.AspNetCore;
-using Butterfly.Client.Sample.Backend.Services;
+﻿using Butterfly.Client.Sample.Backend.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using AspectCore.Extensions.DependencyInjection;
+using OpenTracing;
+using Butterfly.OpenTracing;
+using OpenTracing.Util;
+using Microsoft.Extensions.Hosting;
+using OpenTracing.Contrib.NetCore.CoreFx;
 
 namespace Butterfly.Client.Sample.Backend
 {
@@ -24,33 +22,36 @@ namespace Butterfly.Client.Sample.Backend
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public IServiceProvider ConfigureServices(IServiceCollection services)
+        public void ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
 
             services.AddTransient<IValuesService, ValuesService>();
-            
-            services.AddButterfly(option =>
+
+            services.AddButterfly(options =>
             {
-                option.CollectorUrl = "http://localhost:9618";
-                option.Service = "Backend";
-                //option.IgnoredRoutesRegexPatterns = new string[] { "/values/" };
+                options.Service = "Backend";
             });
 
-            return services.BuildAspectCoreServiceProvider();
+            services.AddOpenTracing();
+
+            services.Configure<HttpHandlerDiagnosticOptions>(options =>
+            {
+                options.IgnorePatterns.Add(x => x.RequestUri.Port == 9618);
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            //app.UseTracing();
-            
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseRouting();
+
+            app.UseEndpoints(builder => builder.MapControllers());
         }
     }
 }

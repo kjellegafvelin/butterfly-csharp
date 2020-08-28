@@ -2,7 +2,7 @@
 
 namespace Butterfly.OpenTracing
 {
-    public class TagCollection : Dictionary<string, string>
+    internal class TagCollection : Dictionary<string, string>
     {
     }
 }

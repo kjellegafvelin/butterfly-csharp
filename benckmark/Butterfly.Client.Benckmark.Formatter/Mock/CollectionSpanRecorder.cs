@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Butterfly.Client.Tracing;
 using Butterfly.OpenTracing;
+using Butterfly.OpenTracing.Recorder;
 
 namespace Butterfly.Client.Benckmark.Formatter.Mock
 {
-    class CollectionSpanRecorder : ISpanRecorder
+    internal class CollectionSpanRecorder : ISpanRecorder
     {
         private readonly ICollection<Span> collection = new List<Span>();
 

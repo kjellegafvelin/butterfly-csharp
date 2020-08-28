@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Attributes.Columns;
+﻿using BenchmarkDotNet.Attributes;
 using Butterfly.Client.Benckmark.Formatter.Mock;
-using Butterfly.Client.Tracing;
 using Butterfly.OpenTracing;
 using MessagePack;
-using Newtonsoft.Json;
+using Microsoft.Extensions.Logging.Abstractions;
 using OpenTracing;
+using OpenTracing.Tag;
+using System.Text.Json;
 
 namespace Butterfly.Client.Benckmark.Formatter
 {
@@ -25,25 +22,31 @@ namespace Butterfly.Client.Benckmark.Formatter
 
         private void Initialization()
         {
-            ITracer tracer = new Tracer(recorder);
-            IServiceTracer serviceTracer = new ServiceTracer(tracer, "benckmark", "debug", "Butterfly.Client.Benckmark.Formatter");
+            ITracer tracer = new Configuration("benchmark", new NullLoggerFactory())
+                .WithRecorder(recorder)
+                .BuildTracer();
+
             for (var i = 0; i < 250; i++)
             {
-                using (var span = (ServiceSpan)serviceTracer.Start("parent"))
+                using (var parentScope = tracer.BuildSpan("parent").StartActive(finishSpanOnDispose: true))
                 {
+                    var span = parentScope.Span;
+
                     span.Log(LogField.CreateNew().ServerReceive());
-                    span.Tags
-                     .Server().Component("AspNetCore")
-                     .HttpMethod("method")
-                     .HttpUrl("url")
-                     .HttpHost("host")
-                     .HttpPath("path")
-                     .HttpStatusCode(200)
-                     .PeerAddress("ip")
-                     .PeerPort(8080);
+
+                    span.SetTag(Tags.SpanKind, Tags.SpanKindServer)
+                        .SetTag(Tags.Component, "AspNetCore")
+                        .SetTag(Tags.HttpMethod, "method")
+                        .SetTag(Tags.HttpUrl, "url")
+                        .SetTag("http.host", "host")
+                        .SetTag("http.path", "Path")
+                        .SetTag(Tags.HttpStatus, 200)
+                        .SetTag(Tags.PeerHostIpv4, "ip")
+                        .SetTag(Tags.PeerPort, 8080);
+
                     span.Log(LogField.CreateNew().ServerSend());
 
-                    using (var child = (ServiceSpan)serviceTracer.StartChild("child"))
+                    using (var childScope = tracer.BuildSpan("child").StartActive(finishSpanOnDispose: true))
                     {
                     }
                 }
@@ -53,7 +56,7 @@ namespace Butterfly.Client.Benckmark.Formatter
         [Benchmark]
         public void JsonFormatter()
         {
-            JsonConvert.SerializeObject(recorder.GetSpans());
+            JsonSerializer.Serialize(recorder.GetSpans());
         }
 
         [Benchmark]

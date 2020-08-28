@@ -1,29 +1,81 @@
-﻿using System;
+﻿using Butterfly.OpenTracing.Dispatcher;
+using Butterfly.OpenTracing.Recorder;
+using Butterfly.OpenTracing.Sampler;
+using Butterfly.OpenTracing.Sender;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using OpenTracing;
+using OpenTracing.Util;
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Butterfly.OpenTracing
 {
     public class Configuration
     {
-        public string ServiceName { get; }
+        private readonly ILoggerFactory loggerFactory;
 
-        public ISampler Sampler { get; private set; } = new FullSampler();
+        internal ButterflyOptions Options { get; private set; } = new ButterflyOptions();
 
-        public ISpanContextFactory SpanContextFactory { get; private set; } = new SpanContextFactory();
-       
+        internal ISampler Sampler { get; private set; } = new FullSampler();
 
-        public Configuration(string serviceName)
+        internal SpanContextFactory SpanContextFactory { get; } = new SpanContextFactory();
+
+        internal IScopeManager ScopeManager { get; private set; } = new AsyncLocalScopeManager();
+
+        internal ISpanRecorder SpanRecorder { get; private set; }
+
+
+        public Configuration(string serviceName, ILoggerFactory loggerFactory)
         {
-            ServiceName = serviceName ?? throw new ArgumentNullException(nameof(serviceName));
+            this.Options.Service = serviceName ?? throw new ArgumentNullException(nameof(serviceName));
+            this.loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
         }
 
         public Tracer BuildTracer()
         {
+            if (this.SpanRecorder == null)
+            {
+                var sender = new HttpButterflySender(this.Options.CollectorUrl);
+                var callback = new SpanDispatchCallback(sender, this.loggerFactory);
+                var dispatcher = new ButterflyDispatcher(new List<IDispatchCallback>() { callback },
+                    loggerFactory,
+                    this.Options.FlushInterval,
+                    this.Options.BoundedCapacity,
+                    this.Options.ConsumerCount);
 
-            ISpanRecorder spanRecorder = null;
+                this.SpanRecorder = new AsyncSpanRecorder(dispatcher);
+            }
 
-            return new Tracer(spanRecorder, this.Sampler, this.SpanContextFactory);
+            return new Tracer(this.Options.Service, this.SpanRecorder, this.Sampler, this.SpanContextFactory, this.ScopeManager);
+        }
+
+        public Configuration WithOptions(ButterflyOptions options)
+        {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            if (string.IsNullOrEmpty(options.Service))
+            {
+                throw new ArgumentException("Invalid service name.", "options.Service");
+            }
+
+            if (!Uri.TryCreate(options.CollectorUrl, UriKind.Absolute, out Uri _))
+            {
+                throw new ArgumentException("Invalid collector url.", "options.CollectorUrl");
+            }
+
+            this.Options = options;
+
+            return this;
+        }
+
+        public Configuration WithRecorder(ISpanRecorder spanRecorder)
+        {
+            this.SpanRecorder = spanRecorder ?? throw new ArgumentNullException(nameof(spanRecorder));
+            return this;
         }
 
         public Configuration WithSampler(ISampler sampler)
@@ -32,9 +84,9 @@ namespace Butterfly.OpenTracing
             return this;
         }
 
-        public Configuration WithSpanContextFactory(ISpanContextFactory spanContextFactory)
+        public Configuration WithScopeManager(IScopeManager scopeManager)
         {
-            this.SpanContextFactory = spanContextFactory ?? throw new ArgumentNullException(nameof(spanContextFactory));
+            this.ScopeManager = scopeManager ?? throw new ArgumentNullException(nameof(scopeManager));
             return this;
         }
     }

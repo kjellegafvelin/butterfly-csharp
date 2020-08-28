@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Butterfly.Client.Logging;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Butterfly.Client.AspNetCore
