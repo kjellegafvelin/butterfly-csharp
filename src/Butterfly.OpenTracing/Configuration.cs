@@ -30,6 +30,7 @@ namespace Butterfly.OpenTracing
         {
             this.Options.Service = serviceName ?? throw new ArgumentNullException(nameof(serviceName));
             this.loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+            this.Options.CollectorUrl = "http://localhost:9618";
         }
 
         public Tracer BuildTracer()
