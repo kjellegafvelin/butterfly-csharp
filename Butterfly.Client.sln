@@ -15,6 +15,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Butterfly.OpenTracing", "sr
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "solution item", "solution item", "{262F187C-E204-42CB-94DC-E25386976C75}"
 	ProjectSection(SolutionItems) = preProject
+		build\common.props = build\common.props
+		build\sign.props = build\sign.props
 		build\version.props = build\version.props
 	EndProjectSection
 EndProject
