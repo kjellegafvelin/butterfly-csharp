@@ -6,6 +6,7 @@ using SpanContract = Butterfly.DataContract.Tracing.Span;
 using Butterfly.OpenTracing.Dispatcher;
 using Butterfly.OpenTracing.Sender;
 using Microsoft.Extensions.Logging;
+using System.Net.Http;
 
 namespace Butterfly.OpenTracing
 {
@@ -38,6 +39,15 @@ namespace Butterfly.OpenTracing
                 {
                     SpanContract[] spans = block.Select(x => x.RawInstance).OfType<SpanContract>().ToArray();
                     await _butterflySender.SendSpanAsync(spans).ConfigureAwait(false);
+                }
+                catch(HttpRequestException)
+                {
+                    foreach (var item in block)
+                    {
+                        item.State = SendState.Untreated;
+                        item.Error();
+                    }
+                    _logger.LogWarning("Failed to connect to collector.");
                 }
                 catch(Exception exception)
                 {
